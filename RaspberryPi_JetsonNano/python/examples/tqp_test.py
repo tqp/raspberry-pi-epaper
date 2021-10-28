@@ -14,6 +14,7 @@ import pytz
 from datetime import datetime
 from PIL import Image,ImageDraw,ImageFont
 import traceback
+import subprocess
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -22,12 +23,14 @@ try:
 
     #logging.info("Init and Clear Screen")
     epd.init()
-    epd.Clear()
+    #epd.Clear()
     #time.sleep(1)
     
     # Set Fonts
     font20 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 20)
     font18 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 18)
+    font16 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 16)
+    font14 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 14)
     font12 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 12)
     font10 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 10)
     
@@ -41,19 +44,47 @@ try:
 
     logging.info("H: %s, W: %s", epd.height, epd.width)
 
-    drawblack.text((4, 2), 'Panama City, Florida ', font = font20, fill = 0)
-    drawblack.line((0, 28, 212, 28), fill = 0)
+    # Title
+    #drawblack.line((0, 17, 212, 17), fill = 0)
+    drawblack.rectangle((0, 0, 212, 17), fill = 0)
+    drawblack.text((4, 0), 'GPS Tracker ', font = font14, fill = 1)
 
+    # IP Address
+    # /sbin/ip -o -4 addr list wlan0 | awk '{print $4}' | cut -d/ -f1
+    ipAddress = subprocess.check_output('ifconfig wlan0 | grep \'inet \' | awk \'{print $2}\'', shell=True, text=True)
+    drawblack.text((4, 19), 'IP Address: ', font = font12, fill = 0)
+    drawblack.text((100, 19), ipAddress, font = font12, fill = 0)
+   
+    # PiSugar2 Battery Level
+    # echo "get battery" | nc -q 0 127.0.0.1 8423
+    batteryPercentage = subprocess.check_output('echo \"get battery\" | nc -q 0 127.0.0.1 8423', shell=True, text=True)
+    batteryPercentage = batteryPercentage.replace("battery: ", "")
+    batteryPercentage = "{:.1f}".format(float(batteryPercentage)) + "%"
+    isBatteryCharging = subprocess.check_output('echo \"get battery_charging\" | nc -q 0 127.0.0.1 8423', shell=True, text=True)
+    drawblack.text((4, 33), 'PiSugar2 Battery: ', font = font12, fill = 0)
+    drawblack.text((100, 33), batteryPercentage, font = font12, fill = 0)
+
+    # Last Location
+    lastLocation = "30°14'N, 85°34'W" + " "
+    drawblack.text((4, 47), 'Last Location: ', font = font12, fill = 0)
+    drawblack.text((100, 47), lastLocation, font = font12, fill = 0)
+   
+    # Distance to Destination
+    distanceToDestination = "23.5 miles" + " "
+    drawblack.text((4, 61), 'Dist. to Dest.: ', font = font12, fill = 0)
+    drawblack.text((100, 61), distanceToDestination, font = font12, fill = 0)
+    
+    # Distance from Origin
+    distanceFromOrigin = "15.2 miles" + " "
+    drawblack.text((4, 75), 'Dist. from Origin: ', font = font12, fill = 0)
+    drawblack.text((100, 75), distanceFromOrigin, font = font12, fill = 0)
+
+    # Updated Timestamp
     drawblack.rectangle((0, 90, 212, 104), fill = 0)
-
-    # America/New_York
-    # America/Chicago 
-    #   
- 
-    tz = pytz.timezone('America/Chicago')
+    tz = pytz.timezone('America/Chicago') # America_New_York
     dateTimeObj = datetime.now(tz)
     timestampStr = dateTimeObj.strftime("%d-%b-%Y %H:%M:%S")
-    drawblack.text((4, 90), 'Updated: ' + timestampStr, font = font10, fill = 1)
+    drawblack.text((4, 90), 'Last Updated: ' + timestampStr, font = font10, fill = 1)
 
     #drawblack.line((20, 50, 70, 100), fill = 0)
     #drawblack.line((70, 50, 20, 100), fill = 0)
